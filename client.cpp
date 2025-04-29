@@ -18,10 +18,11 @@
 
 using namespace std;
 
-int date = 45000;
+int date = 45002;
 int SocketFD;
 bool turno = false;
 char fichaJug;
+string tablero(9, '\0');;
 void readSocketThread(int cliSocket) {
     while (true) {
 
@@ -126,7 +127,7 @@ void readSocketThread(int cliSocket) {
                 cerr << "Error al guardar archivo " << nombreCopia << endl;
             }
         } else if(tipo == 'X') {
-            string tablero(9, '\0');
+            
             read(cliSocket, &tablero[0], 9);
             cout << "Tablero:\n";
             
@@ -154,6 +155,8 @@ void readSocketThread(int cliSocket) {
                 cout << "felicidades, ganaste el juego!!!\n";
             }else if (resultado == 'L') {
                 cout <<" Lo siento, perdiste el juego.\n";
+            } else if(resultado == 'E') {
+                cout << "El juego termino en empate.\n";
             }
         } 
     }
@@ -296,7 +299,13 @@ string paqueteFinal = finalStream.str();
 
             while(1) {
             string input;
-            cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+            for (int i = 0; i < 3; ++i) {
+                cout << tablero[i*3] << " | " << tablero[i*3+1] << " | " << tablero[i*3+2] << endl;
+                if (i < 2) {
+                    cout << "---------" << endl;
+                }
+            }
+            //cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
             cout << "Escoge una posicion del tablero (1,9)\n>>>";
             cin >> pos;
             cout << "Enviando..." << pos << ".\n";
