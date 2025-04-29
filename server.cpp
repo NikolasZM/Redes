@@ -19,7 +19,7 @@ using namespace std;
 
 
 
-int date = 45000;
+int date = 45002;
 map<string,int> mapSockets;
 map<string,char> jugadores;
 vector<vector<char>> tablero(3, vector<char>(3, ' '));
@@ -66,35 +66,35 @@ string convertir() {
     return resultado;
 }
 
-pair<bool, string> comprobarEstado() {
+pair<int, string> comprobarEstado() {
     for (int i = 0; i < 3; i++) {
         if (tablero[i][0] == tablero[i][1] && tablero[i][1] == tablero[i][2] && tablero[i][0] != ' ') {
-            return {true, string(1, tablero[i][0])};
+            return {1, string(1, tablero[i][0])};
         }
     }
 
     for (int i = 0; i < 3; i++) {
         if (tablero[0][i] == tablero[1][i] && tablero[1][i] == tablero[2][i] && tablero[0][i] != ' ') {
-            return {true, string(1, tablero[0][i])}; 
+            return {1, string(1, tablero[0][i])}; 
         }
     }
 
     if (tablero[0][0] == tablero[1][1] && tablero[1][1] == tablero[2][2] && tablero[0][0] != ' ') {
-        return {true, string(1, tablero[0][0])}; 
+        return {1, string(1, tablero[0][0])}; 
     }
     if (tablero[0][2] == tablero[1][1] && tablero[1][1] == tablero[2][0] && tablero[0][2] != ' ') {
-        return {true, string(1, tablero[0][2])}; 
+        return {1, string(1, tablero[0][2])}; 
     }
 
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
             if (tablero[i][j] == ' ') {
-                return {false, ""}; 
+                return {0, ""}; 
             }
         }
     }
 
-    return {false, "Empate"}; 
+    return {2, "Empate"}; 
 }
 
 
@@ -261,8 +261,8 @@ void readSocketThread(int cliSocket, string nickname)
         
         if (marcar(posi,ficha)) {
             
-            pair<bool,string> p = comprobarEstado();
-            if(p.first) {
+            pair<int,string> p = comprobarEstado();
+            if(p.first == 1) {
                 cout << "Opcion1\n";
                 for(auto it:jugadores) {
                     string envio = "00010X" + convertir();
@@ -279,8 +279,20 @@ void readSocketThread(int cliSocket, string nickname)
                 n = cSock(cambio(p.second[0]));
                 cout << "Enviando: " << envio2 << endl;
                 write(n, envio2.c_str(),envio2.size());
-            } else{
+            } else if(p.first == 2){
                 cout << "Opcion2\n";
+                for(auto it:jugadores) {
+                    string envio = "00010X" + convertir();
+                    string name = it.first;
+                    int n = mapSockets[name];
+                    write(n,envio.c_str(), envio.size());
+                    string envio1 = "00002OE";
+                    cout << "Enviando: " << envio1 << endl;
+                    write(n, envio1.c_str(), envio1.size());
+                }
+
+            }else{
+                cout << "Opcion3\n";
                 for(auto it:jugadores) {
                     string envio = "00010X" + convertir();
                     string name = it.first;
