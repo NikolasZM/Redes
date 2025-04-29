@@ -19,9 +19,10 @@ using namespace std;
 
 
 
-int date = 45002;
+int date = 45003;
 map<string,int> mapSockets;
 map<string,char> jugadores;
+
 vector<vector<char>> tablero(3, vector<char>(3, ' '));
 
 char cambio(char x) {
@@ -231,13 +232,13 @@ void readSocketThread(int cliSocket, string nickname)
         if(jugadores.size() == 0) {
             jugadores[nickname] = 'X';
             ostringstream oss;
-            oss << "00034m00018waiting for player00006server";
+            oss << "00035m00018waiting for player00006server";
             string envio = oss.str();
             write(cliSocket, envio.c_str(), envio.size());
         } else if(jugadores.size() == 1) {
             jugadores[nickname] = 'O';
             for(auto it:jugadores) {
-                string envio = "00023m00006inicio00006server";
+                string envio = "00024m00006inicio00006server";
                 int n = cSock(it.second);
                 write(n,envio.c_str(),envio.size());
                 envio = "00010X" + convertir();
@@ -249,6 +250,10 @@ void readSocketThread(int cliSocket, string nickname)
             write(n, envio.c_str(),envio.size());
         }else {
             jugadores[nickname] = '-';
+            cout << "else opcion\n";
+            string ee = "00053m00036El juego esta lleno. Modo espectador00006server";
+            int n = mapSockets[nickname];
+            write(n, ee.c_str(),ee.size());
         }
 
     }else if(tipo == "P") {
@@ -270,6 +275,7 @@ void readSocketThread(int cliSocket, string nickname)
                     int n = mapSockets[name];
                     write(n,envio.c_str(), envio.size());
                 }
+
                 string envio1 = "00002OW";
                 string envio2 = "00002OL";
                 cout << "Ganador = " << p.second[0] << endl;
