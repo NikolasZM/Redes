@@ -15,13 +15,13 @@
 #include <vector>
 #include <cstring>
 #include <iomanip>
-#include <mutex>
+
 using namespace std;
 
-int date = 45008;
+int date = 45000;
 int SocketFD;
-mutex mtx;
-bool juego = false;
+bool turno = false;
+char fichaJug;
 void readSocketThread(int cliSocket) {
     while (true) {
 
@@ -33,7 +33,7 @@ void readSocketThread(int cliSocket) {
 
         char tipo;
         n = read(cliSocket, &tipo, 1);
-        cout << "leyendo:" << tipo << endl;
+        //cout << "leyendo comando:" << tipo << endl;
 
         if (tipo == 'l') {
             vector<char> msg(tam - 1);
@@ -138,41 +138,15 @@ void readSocketThread(int cliSocket) {
             }
             
         } else if (tipo == 'T') {
-            char ficha;
-            n = read(cliSocket, &ficha, 1); 
+            
+            n = read(cliSocket, &fichaJug, 1); 
             if (n <= 0) {
                 cerr << "Error leyendo ficha.\n";
                 return;
             }
-            cout << "Es tu turno de jugar, escoge una casilla vacía (1-9):\n>>> ";
-            int pos;
-
-            while(1) {
-            string input;
-            cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
-
-            //getline(cin, input);
-            cin >> pos;
-            cout << "Enviando..." << pos << ".\n";
-            //cout << "Input: "<< input <<endl;
-            //pos = (int);
-            cout << "Enviando..." << pos << ".\n";
-
-            if (pos < 1 || pos > 9) {
-                cout << "Posición no válida. Intenta de nuevo.\n";
-                continue; 
-            }else {
-                break;
-            }
-            cout <<"Enviando 2.\n";
-            }
-            string envio = "00003P" + to_string(pos) + ficha;
-            cout << envio << endl;
-            n = write(cliSocket, envio.c_str(), envio.size());
-            if (n <= 0) {
-                cerr << "Error enviando la posición.\n";
-                return;
-            }
+            cout << "Es tu turno de jugar, cuando estes listo presiona [7].\n";
+            turno = true;
+            
         } else if(tipo == 'O') {
             char resultado;
             read(cliSocket, &resultado, 1);
@@ -181,8 +155,7 @@ void readSocketThread(int cliSocket) {
             }else if (resultado == 'L') {
                 cout <<" Lo siento, perdiste el juego.\n";
             }
-            juego = false;
-        }
+        } 
     }
     shutdown(cliSocket, SHUT_RDWR);
     close(cliSocket);
@@ -225,7 +198,7 @@ int main(void) {
 
     while(1) {
         int opt;
-        if(!juego) {
+        if(1) {
         cout << "Conectado al servidor. Opciones: \n[1] Ver lista de contactos.";
         cout << "\n[2]Enviar un mensaje.\n";
         cout << "[3]Enviar mensaje global.\n[4]Desconectarte\n[5]Enviar un archivo.\n[6]Jugar 3 en raya\n>>>";
@@ -253,7 +226,7 @@ int main(void) {
 
         } else if(opt == 3){
             string mensaje;
-            cout <<"Ahora escribe el mensaje global:\n>>>";
+            cout <<"Escribe el mensaje global:\n>>>";
             getline(cin, mensaje);
 
             ostringstream msg;
@@ -318,9 +291,33 @@ string paqueteFinal = finalStream.str();
             string cmd = "00001J";
             write(SocketFD, cmd.c_str(), cmd.length());
             cout << "Solicitud enviada para jugar 3 en raya.\n";
-            juego = true;
-        }
+        } else if(opt == 7 && turno == true) {
+            int pos;
 
+            while(1) {
+            string input;
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+            cout << "Escoge una posicion del tablero (1,9)\n>>>";
+            cin >> pos;
+            cout << "Enviando..." << pos << ".\n";
+
+            if (pos < 1 || pos > 9) {
+                cout << "Posición no válida. Intenta de nuevo.\n";
+                continue; 
+            }else {
+                break;
+            }
+            }
+            string envio = "00003P" + to_string(pos) + fichaJug;
+            //cout << "Protocolo enviado: "<<envio << endl;
+            int n = write(SocketFD, envio.c_str(), envio.size());
+            if (n <= 0) {
+                cerr << "Error enviando la posición.\n";
+                return 0;
+            }
+            turno = false;
+
+        }
         else {
             cout << "Opción no válida.\n";
         }
