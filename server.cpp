@@ -19,7 +19,7 @@ using namespace std;
 
 
 
-int date = 45008;
+int date = 45000;
 map<string,int> mapSockets;
 map<string,char> jugadores;
 vector<vector<char>> tablero(3, vector<char>(3, ' '));
