@@ -18,7 +18,7 @@
 
 using namespace std;
 
-int date = 45005;
+int date = 45000;
 map<string,int> mapSockets;
 map<string,char> jugadores;
 
@@ -72,6 +72,21 @@ string convertir() {
     return resultado;
 }
 
+
+auto leerNBytes(int cantidad, int cliSocket) {
+    std::string resultado(cantidad, '\0');
+    int leidos = 0;
+    while (leidos < cantidad) {
+        int nActual = read(cliSocket, &resultado[leidos], cantidad - leidos);
+        if (nActual <= 0) {
+            throw std::runtime_error("Error leyendo del socket o conexión cerrada al intentar leer " + std::to_string(cantidad) + " bytes");
+        }
+        leidos += nActual;
+    }
+    cout << "resultadoBuffer = " << resultado << endl;
+    return resultado;
+};
+
 pair<int, string> comprobarEstado() {
     for (int i = 0; i < 3; i++) {
         if (tablero[i][0] == tablero[i][1] && tablero[i][1] == tablero[i][2] && tablero[i][0] != ' ') {
@@ -108,19 +123,6 @@ void handleClient(int cliSocket, const string& nickname, string buffer) {
     int n;
 
 
-    auto leerNBytes = [&](int cantidad) -> std::string {
-        std::string resultado(cantidad, '\0');
-        int leidos = 0;
-        while (leidos < cantidad) {
-            int nActual = read(cliSocket, &resultado[leidos], cantidad - leidos);
-            if (nActual <= 0) {
-                throw std::runtime_error("Error leyendo del socket o conexión cerrada al intentar leer " + std::to_string(cantidad) + " bytes");
-            }
-            leidos += nActual;
-        }
-        cout << "resultadoBuffer = " << resultado << endl;
-        return resultado;
-    };
 
     string tipo = recortar(buffer,1);
     if (tipo.empty()) {
@@ -163,6 +165,8 @@ void handleClient(int cliSocket, const string& nickname, string buffer) {
                 << setw(5) << nickname.length() << nickname;
             string envio = oss.str();
             write(it->second, envio.c_str(), envio.size());
+            cout <<"ENVIANDO: "<< envio << endl;
+
         } else {
             cerr << "No se encontró el destinatario " << destinatario << "\n";
         }
@@ -178,9 +182,11 @@ void handleClient(int cliSocket, const string& nickname, string buffer) {
             << setw(5) << msgLen << msg
             << setw(5) << nickname.length() << nickname;
         string envio = oss.str();
+        cout <<"ENVIANDO: "<< envio << endl;
 
         for (const auto& [_, sock] : mapSockets) {
             write(sock, envio.c_str(), envio.size());
+            
         }
     } else if(tipo == "Q") {
         mapSockets.erase(nickname);
@@ -188,22 +194,22 @@ void handleClient(int cliSocket, const string& nickname, string buffer) {
         shutdown(cliSocket, SHUT_RDWR);
         close(cliSocket);
     } else if (tipo == "F") {
-        string dstLenStr = leerNBytes(5);
+        string dstLenStr = leerNBytes(5,cliSocket);
         int dstLen = stoi(dstLenStr);
-        string destinatario = leerNBytes(dstLen);
+        string destinatario = leerNBytes(dstLen,cliSocket);
     
-        string fileNameLenStr = leerNBytes(5);
+        string fileNameLenStr = leerNBytes(5,cliSocket);
         int fileNameLen = stoi(fileNameLenStr);
-        string nombreArchivo = leerNBytes(fileNameLen);
+        string nombreArchivo = leerNBytes(fileNameLen,cliSocket);
     
-        string tamArchivoStr = leerNBytes(15);
+        string tamArchivoStr = leerNBytes(15,cliSocket);
         int tamArchivo = stoi(tamArchivoStr);
     
-        string contenido = leerNBytes(tamArchivo);
+        string contenido = leerNBytes(tamArchivo,cliSocket);
     
-        string hashLenStr = leerNBytes(5);
+        string hashLenStr = leerNBytes(5,cliSocket);
         int hashLen = stoi(hashLenStr);
-        string hash = leerNBytes(hashLen);
+        string hash = leerNBytes(hashLen,cliSocket);
     
         cout << "Archivo recibido de " << nickname << " para " << destinatario
             << ": " << nombreArchivo << " (" << tamArchivo << " bytes)\n";
@@ -235,25 +241,34 @@ void handleClient(int cliSocket, const string& nickname, string buffer) {
             oss << "00035m00018waiting for player00006server";
             string envio = oss.str();
             write(cliSocket, envio.c_str(), envio.size());
+            cout <<"ENVIANDO: "<< envio << endl;
+
         } else if(jugadores.size() == 1) {
             jugadores[nickname] = 'O';
             for(auto it:jugadores) {
                 string envio = "00024m00006inicio00006server";
                 int n = cSock(it.second);
                 write(n,envio.c_str(),envio.size());
+                cout <<"ENVIANDO: "<< envio << endl;
                 envio = "00010X" + convertir();
                 write(n,envio.c_str(), envio.size());
+                cout <<"ENVIANDO: "<< envio << endl;
+
             }
             int n = cSock('X');
             string envio = "00002TX";
             cout << "Enviando = " << envio << endl;
             write(n, envio.c_str(),envio.size());
+            cout <<"ENVIANDO: "<< envio << endl;
+
         }else {
             jugadores[nickname] = '-';
             cout << "else opcion\n";
             string ee = "00053m00036El juego esta lleno. Modo espectador00006server";
             int n = mapSockets[nickname];
             write(n, ee.c_str(),ee.size());
+            cout <<"ENVIANDO: "<< ee << endl;
+
         }
     } else if(tipo == "P") {
         char pos;
@@ -282,6 +297,7 @@ void handleClient(int cliSocket, const string& nickname, string buffer) {
                 int n =cSock(p.second[0]);
                 cout << "Enviando: " << envio1 << endl;
                 write(n, envio1.c_str(), envio1.size());
+
                 n = cSock(cambio(p.second[0]));
                 cout << "Enviando: " << envio2 << endl;
                 write(n, envio2.c_str(),envio2.size());
@@ -317,6 +333,8 @@ void handleClient(int cliSocket, const string& nickname, string buffer) {
         } else {
             string envio = "00022E00016Posicion ocupada";
             write(cliSocket, envio.c_str(), envio.size());
+            cout <<"ENVIANDO: "<< envio << endl;
+
         }
     }
 }
