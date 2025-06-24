@@ -21,7 +21,7 @@
 
 using namespace std;
 
-int date = 45005;
+int date = 45000;
 int SocketFD;
 bool turno = false;
 char fichaJug;
